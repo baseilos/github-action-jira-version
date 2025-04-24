@@ -11,6 +11,7 @@ This Github Action is a fork of [Github-Action-JIRA-FixVersion](https://github.c
 - `versionDescription`: The description of the Version (default: "CD version")
 - `versionArchived`: Mark the new version as archived (default: `false`)
 - `versionReleased`: Mark the new version as released (default: `false`)
+- `failOnNonExistentIssueKey`: Fail the action if a key issue does not exist (default: `false`)
 
 ## Outputs
 None

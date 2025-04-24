@@ -1,7 +1,7 @@
 const core = require("@actions/core");
 const JiraApi = require("jira-client")
 
-let jira, domain, username, password, versionName, versionDescription, versionArchived, issueKeys, versionReleased;
+let jira, domain, username, password, versionName, versionDescription, versionArchived, issueKeys, versionReleased, failOnNonExistentIssueKey;
 (async () => {
     try {
         domain = core.getInput("domain");
@@ -12,6 +12,7 @@ let jira, domain, username, password, versionName, versionDescription, versionAr
         versionDescription = core.getInput("versionDescription") || "CD Version";
         versionArchived = core.getInput("versionArchived") === "true" || core.getInput("versionArchived") === true;
         versionReleased = core.getInput("versionReleased") === "true" || core.getInput("versionReleased") === true;
+        failOnNonExistentIssueKey = core.getInput("failOnNonExistentIssueKey") === "true" || core.getInput("failOnNonExistentIssueKey") === true;
 
         // Initialize
         jira = new JiraApi({
@@ -20,25 +21,31 @@ let jira, domain, username, password, versionName, versionDescription, versionAr
             username: username,
             password: password,
         });
-        //core.setFailed(`version is not correct: [${version}] must be "1.0.0"/"v1.0.0"/"test 1.0.0" pattern`);
-        createAndSetVersion(issueKeys, versionName, versionDescription, versionArchived, versionReleased)
-
-        // core.setOutput("new-version", nextVersion);
+        await createAndSetVersion(issueKeys, versionName, versionDescription, versionArchived, versionReleased, failOnNonExistentIssueKey)
     } catch (error) {
         core.setFailed(error.message);
     }
 })();
 
-async function createAndSetVersion(issueKeys, versionName, versionDescription, versionArchived, versionReleased) {
+async function createAndSetVersion(issueKeys, versionName, versionDescription, versionArchived, versionReleased, failOnNonExistentIssueKey) {
     // from e.g. TEST-1 get the project key --> TEST
     const projectKey = getProjectKey(issueKeys);
     const projectId = await getProjectId(projectKey);
     const versionId = await createVersion(projectId, versionName, versionDescription);
     const issueKeyArr = issueKeys.split(",");
     for (let i = 0; i < issueKeyArr.length; i++) {
-        const issueKey = issueKeyArr[i];
-        const issueId = await getIssueId(issueKey);
-        await setVersion(issueId, versionId);
+        try {
+            const issueKey = issueKeyArr[i];
+            const issueId = await getIssueId(issueKey);
+            await setVersion(issueId, versionId);
+        } catch (error) {
+            const errorMessage = `Issue ${issueKeyArr[i]} cannot be accessed: ${error.message}`;
+            if (failOnNonExistentIssueKey) {
+                core.setFailed(errorMessage);
+            } else {
+                core.warning(errorMessage)
+            }
+        }
     }
     // archive version (passing it as argument while creating version doesn't work
     if (versionArchived) {
@@ -102,9 +109,9 @@ async function getVersion(projectId, versionName) {
 }
 
 async function setVersion(issueId, versionId) {
-    await jira.updateIssue(issueId, {
-        update: {
-            fixVersions: [{"add": {id: versionId}}]
-        }
-    });
+        await jira.updateIssue(issueId, {
+            update: {
+                fixVersions: [{"add": {id: versionId}}]
+            }
+        });
 }
