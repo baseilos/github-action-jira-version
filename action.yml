@@ -1,4 +1,4 @@
-name: 'Jira create and set fix version'
+name: 'Create JIRA version'
 description: 'Intended for CD, this action creates and sets the given version as fix version in Jira Cloud for given issue'
 branding:
   icon: "cloud"
@@ -28,6 +28,9 @@ inputs:
     required: false
   versionReleased:
     description: 'Mark the new version as released (default: false)'
+    required: false
+  failOnNonExistentIssueKey:
+    description: 'Fail if the issue key does not exist (default: false)'
     required: false
 runs:
   using: 'node20'
