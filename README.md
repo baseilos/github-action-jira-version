@@ -19,7 +19,7 @@ None
 
 ## Example usage
 ```yaml
-uses: baseilos/create-jira-version@v1.0
+uses: baseilos/github-action-jira-version@v1.0.0
 with:
   domain: "my-company.atlassian.net"
   username: "technical-user@company.net"
